@@ -1,0 +1,17 @@
+38e404362724974ff691e40422efb911 *DESCRIPTION
+bb5a97f40158d10bd600ca6585ef76e0 *NAMESPACE
+75e3d27d375f28c92bbe86edee9c1fa1 *R/cgmvariables.R
+83f066b96ada3ea66212d218aa100970 *R/cleandexcomdata.R
+97016554e425c0879624455756583eaf *R/cleaniprodata.R
+b176c8237b78b4c6a4c0c52a0cfe9b97 *R/easygvtable.R
+e3efc07d539312697c1c208d517a8b24 *R/makecsv.R
+fba0515d28e8530c2eb30153497c3db8 *inst/extdata/Cleaned_Dexcom_CSVs/1_Formatted_R.csv
+80734335b9ea170c6976aea361a60b44 *inst/extdata/Cleaned_iPro_CSVs/1_Formatted_R.csv
+a2d582819a80300ffa0efa6b3a7b194d *inst/extdata/Dexcom_Tests/1.txt
+547e40db4074aacdd970393467645250 *inst/extdata/iPro_CSVs/1.csv
+ded6f711c327b38f117102b081cac292 *inst/extdata/iPro_Tests/1.xlsx
+f6bd5ff983cce168e752b29f95c62281 *man/cgmvariables.Rd
+28112ab4b258c282d7d3233ec27ab113 *man/cleandexcomdata.Rd
+9bb4e2b680f2ea7617264ca52c4457b3 *man/cleaniprodata.Rd
+1f26732d2c731db313d4466dba90e8a4 *man/easygvtable.Rd
+783773b054052b603a69881d372fa6c7 *man/makecsv.Rd
