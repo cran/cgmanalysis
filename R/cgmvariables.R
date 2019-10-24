@@ -15,6 +15,11 @@
 #' spreadsheet to be written.
 #' @param outputname The name of the file containing final CGM variables 
 #' (without the file extension).
+#' @param customintervals A list of custom blood glucose intervals. Minutes and 
+#' percent time below the lower bound, in the specified range, and above the 
+#' upper bound are calculated for each interval in the list. Number of 
+#' excursions below the lower bound and above the upper bound are also 
+#' calculated for each interval. 
 #' @param aboveexcursionlength The number of minutes blood sugar must be above 
 #' threshold to count an excursion.
 #' @param belowexcursionlength The number of minutes blood sugar must be below 
@@ -31,6 +36,7 @@
 #' @usage cgmvariables(inputdirectory,
 #' outputdirectory = tempdir(),
 #' outputname = "REDCap Upload",
+#' customintervals = list(NULL),
 #' aboveexcursionlength = 35,
 #' belowexcursionlength = 10,
 #' magedef = "1sd",
@@ -38,7 +44,7 @@
 #' daystart = 6,
 #' dayend = 22,
 #' format = "rows",
-#' printname = T)
+#' printname = F)
 #' @examples cgmvariables(system.file("extdata","Cleaned",package = "cgmanalysis"))
 #' @return A data frame containing calculated CGM variables, with each column
 #' representing one CGM file.
@@ -47,6 +53,7 @@
 cgmvariables <- function(inputdirectory,
                          outputdirectory = tempdir(),
                          outputname = "REDCap Upload",
+                         customintervals = list(NULL),
                          aboveexcursionlength = 35,
                          belowexcursionlength = 10,
                          magedef = "1sd",
@@ -54,7 +61,7 @@ cgmvariables <- function(inputdirectory,
                          daystart = 6,
                          dayend = 22,
                          format = "rows",
-                         printname = T) {
+                         printname = F) {
 
 # Read in data, create results dataframe. The dataframe has one column for each 
 # file in the input directory, and is desgined to be uploaded to REDCap. 
@@ -294,6 +301,57 @@ cgmvariables <- function(inputdirectory,
       ((base::sum(BGinrange) * (interval/60))/
          (base::length(table$sensorglucose) * (interval/60))) * 100
     
+# Custom intervals
+    if(!is.null(customintervals[[1]])) {
+      lows <- unlist(lapply(customintervals, '[[', 1))
+      highs <- unlist(lapply(customintervals, '[[', 2))
+      for (r in 1:length(customintervals)) {
+        # Range
+        BGinrange <- base::as.numeric(table$sensorglucose[base::which(!is.na(table$sensorglucose))],
+                                  length = 1)
+        BGinrange <- ifelse(BGinrange %in% lows[r]:highs[r], 1,0)
+        minname <- paste0("min_spent_",lows[r],"_",highs[r])
+        cgmupload[minname,f] <- base::sum(BGinrange) * (interval/60)
+        percname <- paste0("percent_time_",lows[r],"_",highs[r])
+        cgmupload[percname,f] <- 
+          ((base::sum(BGinrange) * (interval/60))/
+             (base::length(table$sensorglucose) * (interval/60))) * 100
+        # Below
+        BGunder <- 
+          base::as.numeric(table$sensorglucose[base::which(!is.na(table$sensorglucose))],
+                           length = 1)
+        BGunder[BGunder <= lows[r]] <- 1
+        BGunder[BGunder > lows[r]] <- 0
+        BGunder.rle <- base::rle(BGunder)
+        excursionsunder <- 
+          base::as.numeric(BGunder.rle$lengths[base::which(BGunder.rle$values == 1)])
+        
+        cgmupload[paste0("excursions_under_",lows[r]),f] <- 
+          base::length(base::which(excursionsunder > 
+                                     ((belowexcursionlength * 60)/interval)))
+        cgmupload[paste0("min_spent_under_",lows[r]),f] <- base::sum(BGunder) * (interval/60)
+        cgmupload[paste0("percent_time_under_",lows[r]),f] <- 
+          ((base::sum(BGunder) * (interval/60))/
+             (base::length(table$sensorglucose) * (interval/60))) * 100
+        # Above
+        BGover <- 
+          base::as.numeric(table$sensorglucose[base::which(!is.na(
+            table$sensorglucose))],length = 1)
+        BGover[BGover < highs[r]] <- 0
+        BGover[BGover >= highs[r]] <- 1
+        BGover.rle <- base::rle(BGover)
+        excursionsover <- 
+          base::as.numeric(BGover.rle$lengths[base::which(BGover.rle$values == 1)])
+        
+        cgmupload[paste0("excursions_over_",highs[r]),f] <- 
+          base::length(base::which(excursionsover > 
+                                     ((aboveexcursionlength * 60)/interval)))
+        cgmupload[paste0("min_spent_over_",highs[r]),f] <- base::sum(BGover) * (interval/60)
+        cgmupload[paste0("percent_time_over_",highs[r]),f] <- 
+          ((base::sum(BGover) * (interval/60))/
+             (base::length(table$sensorglucose) * (interval/60))) * 100
+      }
+    }
 # Find daytime AUC.
     daytime_indexes <- 
       base::which(base::as.numeric(base::format(table$timestamp,"%H")) %in% 
@@ -517,8 +575,8 @@ cgmvariables <- function(inputdirectory,
     conga.times <- conga.times[base::order(conga.times)]
     conga.times <- conga.times[base::which(conga.times %in% table$timestamp)]
     begin.times <- conga.times - n
-    congas <- table$sensorglucose[base::which(table$timestamp %in% conga.times)] - 
-      table$sensorglucose[base::which(table$timestamp %in% begin.times)]
+    suppressWarnings(congas <- table$sensorglucose[base::which(table$timestamp %in% conga.times)] - 
+      table$sensorglucose[base::which(table$timestamp %in% begin.times)])
     cgmupload[base::paste0("conga_",congan),f] <- stats::sd(congas,na.rm = T)
 # MODD.
     table$time <- lubridate::round_date(table$timestamp,"5 minutes")

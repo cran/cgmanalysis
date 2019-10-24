@@ -20,11 +20,17 @@
 #' or equal to maximumgap will be interpolated rather than removed.
 #' @param maximumgap Allows the user to determine the longest data gap (in 
 #' minutes) that will be interpolated. 
+#' @param id_filename If true, the file name will be used for subject ID
+#' rather than the ID contained in the data.
+#' @param verbose If true, each file name will print as the program runs for 
+#' troubleshooting purposes.
 #' @usage cleandata(inputdirectory,
 #' outputdirectory = tempdir(),
 #' removegaps = TRUE,
 #' gapfill = TRUE,
-#' maximumgap = 20)
+#' maximumgap = 20,
+#' id_filename = F,
+#' verbose = F)
 #' @examples \dontrun{cleandata(system.file("extdata", "De-identified",
 #' package = "cgmanalysis"))}
 #' @return
@@ -34,7 +40,9 @@ cleandata <- function(inputdirectory,
                       outputdirectory = tempdir(),
                       removegaps = TRUE,
                       gapfill = TRUE,
-                      maximumgap = 20) {
+                      maximumgap = 20,
+                      id_filename = F,
+                      verbose = F) {
 
 # Set system locale to read all characters. Read in file list. Creat output 
 # directory.
@@ -46,6 +54,7 @@ cleandata <- function(inputdirectory,
   
 # Read in data, check CGM type.  
   for (f in 1:base::length(files)) {
+    if (verbose == T) {print(basename(files[f]))}
     ext <- tools::file_ext(files[f])
     enc <- base::as.character(readr::guess_encoding(files[f])[1,1])
     if (ext == "txt") {
@@ -61,18 +70,14 @@ cleandata <- function(inputdirectory,
         table <- utils::read.csv(files[f],
                                  stringsAsFactors = FALSE,
                                  header = TRUE,
-                                 na.strings = "",
-                                 skipNul = TRUE,
-                                 fileEncoding = enc)
+                                 na.strings = "")
     } else if (ext == "xls" | ext == "xlsx" | ext == "xlsm") {
-          table <- gdata::read.xls(files[f],
-                                   stringsAsFactors = FALSE,
-                                   na.strings = "")
+          table <- readxl::read_excel(files[f])
         }
     
     if (base::ncol(table) == 3 && base::colnames(table)[3] == "X" | base::ncol(table) == 2) {
       cgmtype <- "diasend"
-    } else if (base::ncol(table) == 18) {
+    } else if (base::ncol(table) == 18 | base::ncol(table) == 19) {
       cgmtype <- "libre"
     } else if (base::ncol(table) == 4) {
       cgmtype <- "libre pro"
@@ -86,17 +91,20 @@ cleandata <- function(inputdirectory,
     } else if (base::ncol(table) == 17 | base::ncol(table) == 22 | base::ncol(table) == 34) {
       cgmtype <- "ipro"
     } else {
-      stop(base::paste("File '",files[f],"' is formatted incorrectly, and the 
-                       data cannot be read.",sep = ""))
+      stop(base::paste("File '",files[f],"' is formatted incorrectly and the data cannot be read.",sep = ""))
       }
       
 # Format columns.
     if (cgmtype == "diasend") {
-      id <- base::colnames(table)[2]
+      if (id_filename == F) {
+        id <- base::colnames(table)[2]
+        } else {id <- sub("\\..*","",basename(files[f]))}
       table <- table[-c(1:base::which(table[,1] == "Time")),]
       base::colnames(table) <- c("timestamp","sensorglucose")
     } else if (cgmtype == "carelink") {
-      id <- table$Patient.ID[1]
+      if (id_filename == F) {
+        id <- table$Patient.ID[1]
+      } else {id <- sub("\\..*","",basename(files[f]))}
       table <- table[-c(1:6),]
       base::colnames(table) <- table[base::which(table[,3] == "Sensor")+1,]
       table <- table[-c(1:(base::which(table[,3] == "Sensor")+1)),]
@@ -107,37 +115,53 @@ cleandata <- function(inputdirectory,
       base::colnames(table) <- c('timestamp','sensorglucose')
     } else if (cgmtype == "dexcom") {
       if ('Glucose.Value..mg.dL.' %in% colnames(table)) {
-        id <- table$Patient.Info[3]
-        table <- table[,c('Timestamp..YYYY.MM.DDThh.mm.ss.','Glucose.Value..mg.dL.')]
+        if (id_filename == F) {
+          id <- table$Patient.Info[3]
+        } else {id <- sub("\\..*","",basename(files[f]))}
+        if ('Timestamp..YYYY.MM.DDThh.mm.ss.' %in% colnames(table)) {
+          table <- table[,c('Timestamp..YYYY.MM.DDThh.mm.ss.','Glucose.Value..mg.dL.')]
+        } else {
+          table <- table[,c('Timestamp..YYYY.MM.DD.hh.mm.ss.','Glucose.Value..mg.dL.')]
+        }
         base::colnames(table) <- c('timestamp','sensorglucose')
         table$timestamp <- base::sub("T"," ",table$timestamp)
       } else {
-        id <- table$PatientInfoValue[1]
+        if (id_filename == F) {
+          id <- table$PatientInfoValue[1]
+        } else {id <- sub("\\..*","",basename(files[f]))}
         table <- table[,c("GlucoseDisplayTime","GlucoseValue")]
         base::colnames(table) <- c('timestamp','sensorglucose')
       }
     } else if (cgmtype == "libre") {
-      id <- table[1,1]
+      if (id_filename == F) {
+        id <- table[1,1]
+      } else {id <- sub("\\..*","",basename(files[f]))}
       base::colnames(table) <- table[2,]
       table <- table[-c(1:2),]
       table <- table[,c("Meter Timestamp","Historic Glucose(mg/dL)")]
       base::colnames(table) <- c('timestamp','sensorglucose')
     } else if (cgmtype == "libre pro") {
-      id <- table[1,1]
+      if (id_filename == F) {
+        id <- table[1,1]
+      } else {id <- sub("\\..*","",basename(files[f]))}
       base::colnames(table) <- table[2,]
       table <- table[-c(1:2),]
       table <- table[,c("Time","Historic Glucose (mg/dL)")]
       base::colnames(table) <- c('timestamp','sensorglucose')
     } else if (cgmtype == "manual") {
+      if (id_filename == F) {
+        id <- table[,1][1]
+      } else {id <- sub("\\..*","",basename(files[f]))}
       table$sensorglucose <- 
         base::suppressWarnings(base::as.numeric(table$sensorglucose))
       table <- 
         table[-c(max(base::which(!is.na(table$sensorglucose)))+1:nrow(table)),]
-      id <- table[,1][1]
       table <- table[,-c(1)]
     } else if (cgmtype == "ipro") {
       base::colnames(table) <- table[11,]
-      id <- table[2,2]
+      if (id_filename == F) {
+        id <- table[2,2]
+      } else {id <- sub("\\..*","",basename(files[f]))}
       table <- table[-c(1:11),]
       table$Timestamp <- base::sub("[.]00","",table$Timestamp)
       table <- table[,c("Timestamp","Sensor Glucose (mg/dL)")]
@@ -157,7 +181,6 @@ cleandata <- function(inputdirectory,
       base::suppressWarnings(base::as.numeric(table$sensorglucose))
     table <- table[base::order(table$timestamp),]
 
-# ***Make record start time ignore "PULSE INIT" etc. for iPro***
     recordstart <- 
       base::strftime(table$timestamp[min(which(!is.na(table$sensorglucose)))],
                      format = "%m/%d/%Y %T")
