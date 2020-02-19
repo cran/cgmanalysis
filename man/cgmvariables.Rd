@@ -14,6 +14,7 @@ magedef = "1sd",
 congan = 1,
 daystart = 6,
 dayend = 22,
+id_filename = F,
 format = "rows",
 printname = F)
 }
@@ -49,6 +50,9 @@ counting day time at 6:00am, set daystart = 6).}
 
 \item{dayend}{The numeric hour at which daytime should end (this parameter 
 uses military time, so to stop counting day time at 10:00pm, set dayend = 22).}
+
+\item{id_filename}{If true, the file name will be used for subject ID 
+rather than the ID contained in the data.}
 
 \item{format}{Whether observations are in rows or columns.}
 

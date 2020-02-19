@@ -33,7 +33,6 @@
 #' verbose = F)
 #' @examples \dontrun{cleandata(system.file("extdata", "De-identified",
 #' package = "cgmanalysis"))}
-#' @return
 #' @export
 
 cleandata <- function(inputdirectory,
@@ -72,8 +71,23 @@ cleandata <- function(inputdirectory,
                                  header = TRUE,
                                  na.strings = "")
     } else if (ext == "xls" | ext == "xlsx" | ext == "xlsm") {
-          table <- readxl::read_excel(files[f])
-        }
+          table <- suppressMessages(readxl::read_excel(files[f]))
+    } else if (ext == "xml") {
+      doc <- XML::xmlParse(files[f])
+      l <- XML::xmlToList(doc)
+      id <- l$.attrs[["StudyIdentifier"]]
+      l <- l[["GlucoseReadings"]]
+      times <- lapply(l, function(x) {x[["DisplayTime"]]})
+      times <- do.call(rbind,times)
+      sensor <- lapply(l, function(x) {x[["Value"]]})
+      sensor <- do.call(rbind,sensor)
+      table <- cbind(times,sensor)
+      table <- as.data.frame(table)
+      colnames(table) <- c("timestamp","sensorglucose")
+      table$subjectid <- NA
+      table$subjectid[1] <- id
+      table <- table[,c("subjectid","timestamp","sensorglucose")]
+    }
     
     if (base::ncol(table) == 3 && base::colnames(table)[3] == "X" | base::ncol(table) == 2) {
       cgmtype <- "diasend"
@@ -90,6 +104,8 @@ cleandata <- function(inputdirectory,
       cgmtype <- "manual"
     } else if (base::ncol(table) == 17 | base::ncol(table) == 22 | base::ncol(table) == 34) {
       cgmtype <- "ipro"
+    } else if (base::ncol(table) == 6) {
+      cgmtype <- "tslimg4"
     } else {
       stop(base::paste("File '",files[f],"' is formatted incorrectly and the data cannot be read.",sep = ""))
       }
@@ -153,7 +169,7 @@ cleandata <- function(inputdirectory,
         id <- table[,1][1]
       } else {id <- sub("\\..*","",basename(files[f]))}
       table$sensorglucose <- 
-        base::suppressWarnings(base::as.numeric(table$sensorglucose))
+        base::suppressWarnings(base::as.numeric(as.character(table$sensorglucose)))
       table <- 
         table[-c(max(base::which(!is.na(table$sensorglucose)))+1:nrow(table)),]
       table <- table[,-c(1)]
@@ -163,9 +179,24 @@ cleandata <- function(inputdirectory,
         id <- table[2,2]
       } else {id <- sub("\\..*","",basename(files[f]))}
       table <- table[-c(1:11),]
+      if (grepl("- | /",table$Timestamp[1]) == F) {
+        table$Timestamp <- base::as.POSIXct(as.numeric(table$Timestamp)* (60*60*24), 
+                                   origin = "1899-12-30",
+                                   tz = "UTC")
+      }
       table$Timestamp <- base::sub("[.]00","",table$Timestamp)
       table <- table[,c("Timestamp","Sensor Glucose (mg/dL)")]
       base::colnames(table) <- c('timestamp','sensorglucose')
+    } else if (cgmtype == "tslimg4") {
+      row <- base::which(table[,1] == "DeviceType")
+      base::colnames(table) <- table[row,]
+      if (id_filename == F) {
+        id <- table[row - 7,2]
+      } else {id <- sub("\\..*","",basename(files[f]))}
+      table <- table[-c(1:row),]
+      table$timestamp <- table$EventDateTime
+      table$sensorglucose <- as.numeric(table$`Readings (CGM / BGM)`)
+      table <- table[,c('timestamp','sensorglucose')]
     }
 
 # Make sensor glucose numeric, sort table by timestamp, remove duplicate rows. 
@@ -257,10 +288,11 @@ cleandata <- function(inputdirectory,
     table$subjectid[1] <- id
     table$subjectid[2] <- recordstart
     table$subjectid[3] <- removaltime
+    table$subjectid <- as.character(table$subjectid)
     table <-table[,c("subjectid","timestamp","sensorglucose")]
     filename <- 
       base::paste(outputdirectory,"/",tools::file_path_sans_ext(
         basename(files[f])),".csv",sep = "")
-    utils::write.csv(table,file = filename,row.names = FALSE)
+    utils::write.csv(as.data.frame(table),file = filename,row.names = FALSE)
   }
 }
