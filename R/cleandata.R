@@ -75,7 +75,7 @@ cleandata <- function(inputdirectory,
     } else if (ext == "xml") {
       doc <- XML::xmlParse(files[f])
       l <- XML::xmlToList(doc)
-      id <- l$.attrs[["StudyIdentifier"]]
+      id <- l$.attrs[["Id"]]
       l <- l[["GlucoseReadings"]]
       times <- lapply(l, function(x) {x[["DisplayTime"]]})
       times <- do.call(rbind,times)
@@ -87,9 +87,11 @@ cleandata <- function(inputdirectory,
       table$subjectid <- NA
       table$subjectid[1] <- id
       table <- table[,c("subjectid","timestamp","sensorglucose")]
+    } else if (ext == "ASC") {
+      table = utils::read.delim(files[f])
     }
     
-    if (base::ncol(table) == 3 && base::colnames(table)[3] == "X" | base::ncol(table) == 2) {
+    if (base::ncol(table) == 3 & base::colnames(table)[3] == "X" | base::ncol(table) == 2) {
       cgmtype <- "diasend"
     } else if (base::ncol(table) == 18 | base::ncol(table) == 19) {
       cgmtype <- "libre"
@@ -104,6 +106,8 @@ cleandata <- function(inputdirectory,
       cgmtype <- "manual"
     } else if (base::ncol(table) == 17 | base::ncol(table) == 22 | base::ncol(table) == 34) {
       cgmtype <- "ipro"
+    } else if (base::ncol(table) == 6 & ext == "ASC") {
+      cgmtype = "asc"
     } else if (base::ncol(table) == 6) {
       cgmtype <- "tslimg4"
     } else {
@@ -121,7 +125,6 @@ cleandata <- function(inputdirectory,
       if (id_filename == F) {
         id <- table$Patient.ID[1]
       } else {id <- sub("\\..*","",basename(files[f]))}
-      table <- table[-c(1:6),]
       base::colnames(table) <- table[base::which(table[,3] == "Sensor")+1,]
       table <- table[-c(1:(base::which(table[,3] == "Sensor")+1)),]
       table <- table[-c(base::which(!is.na(table$`Event Marker`))),]
@@ -143,10 +146,12 @@ cleandata <- function(inputdirectory,
         table$timestamp <- base::sub("T"," ",table$timestamp)
       } else {
         if (id_filename == F) {
-          id <- table$PatientInfoValue[1]
+          id <- table[1,5]
         } else {id <- sub("\\..*","",basename(files[f]))}
-        table <- table[,c("GlucoseDisplayTime","GlucoseValue")]
-        base::colnames(table) <- c('timestamp','sensorglucose')
+        table$sensorglucose = table[,grep("glucose",tolower(colnames(table)))[1]]
+        table$timestamp = table[,2]
+        table = table[,c('timestamp','sensorglucose')]
+        table$timestamp <- base::sub("T"," ",table$timestamp)
       }
     } else if (cgmtype == "libre") {
       if (id_filename == F) {
@@ -188,6 +193,11 @@ cleandata <- function(inputdirectory,
       table$Timestamp <- base::sub("[.]00","",table$Timestamp)
       table <- table[,c("Timestamp","Sensor Glucose (mg/dL)")]
       base::colnames(table) <- c('timestamp','sensorglucose')
+    } else if (cgmtype == "asc") {
+      id = sub("\\..*","",basename(files[f]))
+      table$timestamp = paste(table$Date,table$Time)
+      table$sensorglucose = table$Value
+      table = table[,c('timestamp','sensorglucose')]
     } else if (cgmtype == "tslimg4") {
       row <- base::which(table[,1] == "DeviceType")
       base::colnames(table) <- table[row,]
