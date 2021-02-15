@@ -14,7 +14,7 @@ citEntry(entry = "Article",
   volume       = "14",
   number       = "10",
   pages        = "e0216851",
-  url          = "https://www.ncbi.nlm.nih.gov/pubmed/31603912",
+  url          = "https://pubmed.ncbi.nlm.nih.gov/31603912/",
 
   textVersion  =
   paste("Vigers, T., Chan, C. L., Snell-Bergeon, J., Bjornstad, P., Zeitler, P. S., Forlenza, G., & Pyle, L. (2019).",

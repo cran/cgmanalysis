@@ -38,7 +38,7 @@
 #' @usage cgmvariables(inputdirectory,
 #' outputdirectory = tempdir(),
 #' outputname = "REDCap Upload",
-#' customintervals = list(c(250,400)),
+#' customintervals = list(c(180,250),c(250,400)),
 #' aboveexcursionlength = 35,
 #' belowexcursionlength = 10,
 #' magedef = "1sd",
@@ -56,7 +56,7 @@
 cgmvariables <- function(inputdirectory,
                          outputdirectory = tempdir(),
                          outputname = "REDCap Upload",
-                         customintervals = list(c(250,400)),
+                         customintervals = list(c(180,250),c(250,400)),
                          aboveexcursionlength = 35,
                          belowexcursionlength = 10,
                          magedef = "1sd",
@@ -103,7 +103,9 @@ cgmvariables <- function(inputdirectory,
     table$timestamp <- 
       base::as.POSIXct(lubridate::parse_date_time(table$timestamp,
                                                   dateparseorder,tz = "UTC"))
-    table$sensorglucose <- base::as.numeric(table$sensorglucose)
+    table$sensorglucose[table$sensorglucose=="Low"] <- 40
+    table$sensorglucose[table$sensorglucose=="High"] <- 400
+    table$sensorglucose <- suppressWarnings(base::as.numeric(table$sensorglucose))
     interval <- pracma::Mode(base::diff(base::as.numeric(table$timestamp)))
     interval <- base::abs(interval)
     cgmupload["date_cgm_placement", f] <- 
@@ -116,7 +118,7 @@ cgmvariables <- function(inputdirectory,
     cgmupload["percent_cgm_wear",f] <- 
       base::floor(((base::length(which(!is.na(table$sensorglucose)))/(totaltime/interval))*100))
     cgmupload["num_days_good_data",f] <- 
-      base::round(base::length(table$sensorglucose)/(86400/interval))
+      base::round(base::length(which(!is.na(table$sensorglucose)))/(86400/interval))
     
     table <- table[!is.na(table$timestamp) & !is.na(table$sensorglucose),]
     
@@ -548,8 +550,8 @@ cgmvariables <- function(inputdirectory,
     sd <- stats::sd(table$sensorglucose)
 # Identify turning points, peaks, and nadirs.
     tpoints <- pastecs::turnpoints(table$smoothed)
-    peaks <- base::which(tpoints[["peaks"]] == TRUE)
-    pits <- base::which(tpoints[["pits"]] == TRUE)
+    peaks <- tpoints$pos[tpoints$peaks]
+    pits <- tpoints$pos[tpoints$pits]
 # Calculate the difference between each nadir and its following peak. If the     
 # data starts on a peak, remove it. Otherwise remove the final pit to create an 
 # even number of pits and peaks.
