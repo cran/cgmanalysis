@@ -117,15 +117,20 @@ cgmvariables <- function(inputdirectory,
                                       units = "secs"))
     cgmupload["percent_cgm_wear",f] <- 
       base::floor(((base::length(which(!is.na(table$sensorglucose)))/(totaltime/interval))*100))
-    cgmupload["num_days_good_data",f] <- 
-      base::round(base::length(which(!is.na(table$sensorglucose)))/(86400/interval))
+    cgmupload["num_days",f] <- base::length(base::unique(lubridate::date(table$timestamp[base::which(!is.na(table$sensorglucose))])))
     
     table <- table[!is.na(table$timestamp) & !is.na(table$sensorglucose),]
     
     cgmupload["total_sensor_readings",f] <- 
       base::as.numeric(base::length(base::which(!is.na(table$sensorglucose))))
-    cgmupload["average_sensor",f] <- 
+    cgmupload["mean_sensor",f] <- 
       base::mean(table$sensorglucose[base::which(!is.na(table$sensorglucose))],na.rm = T)
+    cgmupload["median_sensor",f] <- 
+      stats::median(table$sensorglucose[base::which(!is.na(table$sensorglucose))],na.rm = T)
+    cgmupload["percentile_25_sensor",f] <- 
+      stats::quantile(table$sensorglucose[base::which(!is.na(table$sensorglucose))],na.rm = T)[2]
+    cgmupload["percentile_75_sensor",f] <- 
+      stats::quantile(table$sensorglucose[base::which(!is.na(table$sensorglucose))],na.rm = T)[4]
     cgmupload["estimated_a1c",f] <- 
       base::round((46.7 + (base::mean(table$sensorglucose[
         base::which(!is.na(table$sensorglucose))]))) / 28.7,digits = 1)
