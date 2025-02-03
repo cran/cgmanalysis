@@ -1,7 +1,7 @@
-c62880d559707a311d367028e8d0a3eb *DESCRIPTION
+0015ef03a0a6c8cb7e6bc481bccb97df *DESCRIPTION
 a11aa8c5f63a1abce9ffb9561f1021ad *NAMESPACE
 f66191b9cd17183a4fabc3ebeed6b106 *R/cgmreport.R
-b3403dc51e82887155c375b0dd6198ec *R/cgmvariables.R
+35390e2ce67670d7f073eb20a7b11096 *R/cgmvariables.R
 9396d4c13b917fb22293ebe8d4155cc8 *R/cleandata.R
 6d33d8d718047e64a1a308931963cdbb *inst/CITATION
 fad6387bcf77c4257023356334400047 *inst/extdata/Cleaned/Dexcom.csv
@@ -10,5 +10,5 @@ fad6387bcf77c4257023356334400047 *inst/extdata/Cleaned/Dexcom.csv
 b7482386be84e5cef17d27a68c053519 *inst/extdata/De-identified/Libre.csv
 6519a613f43b6e51527ed85ef9759c28 *inst/extdata/De-identified/iPro.xlsx
 1168a8c416a00d8476a60c8367fb723d *man/cgmreport.Rd
-907bb7c2034bfff98f72e40700b14424 *man/cgmvariables.Rd
+8f3ef28ddd3472b70a7c2752b377fcd4 *man/cgmvariables.Rd
 ee16c874b2e0977739dddcc0b38898f1 *man/cleandata.Rd
