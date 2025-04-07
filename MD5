@@ -1,8 +1,8 @@
-0015ef03a0a6c8cb7e6bc481bccb97df *DESCRIPTION
+b29b2891e5d14afd259c02d02195126a *DESCRIPTION
 a11aa8c5f63a1abce9ffb9561f1021ad *NAMESPACE
 f66191b9cd17183a4fabc3ebeed6b106 *R/cgmreport.R
-35390e2ce67670d7f073eb20a7b11096 *R/cgmvariables.R
-9396d4c13b917fb22293ebe8d4155cc8 *R/cleandata.R
+e417ff191f73a79416e139c45994be25 *R/cgmvariables.R
+0a79ff18f9bbd89139a89ead326cf6f8 *R/cleandata.R
 6d33d8d718047e64a1a308931963cdbb *inst/CITATION
 fad6387bcf77c4257023356334400047 *inst/extdata/Cleaned/Dexcom.csv
 26463745994b66da420c505e90535b06 *inst/extdata/Cleaned/Libre.csv
